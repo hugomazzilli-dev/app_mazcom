@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useFinances, Document } from '@/hooks/useFinances'
 import FinanceModal from '@/components/FinanceModal'
 import { generatePDF } from '@/lib/generatePDF'
 import { supabase } from '@/lib/supabase'
-import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 const CA_PREV = [3000,3800,3500,4800,7500,6000,7000,8000,6500,7000,8500,9000]
@@ -16,19 +15,20 @@ function statusLabel(s: string) { return s === 'paid' ? 'Payée' : s === 'late' 
 function statusColor(s: string) { return s === 'paid' ? '#4ade80' : s === 'late' ? '#f87171' : s === 'pending' ? '#fb923c' : '#555' }
 function statusBg(s: string)    { return s === 'paid' ? '#0d1f0d' : s === 'late' ? '#1a0a0a' : s === 'pending' ? '#1a1008' : '#1e1e22' }
 
-export default function Finances() {
+function FinancesInner() {
   const { factures, devis, loading, addDoc, updateDoc, deleteDoc } = useFinances()
   const [tab, setTab]               = useState<'dashboard' | 'factures' | 'devis'>('dashboard')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [modal, setModal]           = useState<'add' | 'edit' | null>(null)
   const [downloading, setDownloading] = useState(false)
   const searchParams = useSearchParams()
-useEffect(() => {
-  if (searchParams.get('new') === 'devis') {
-    setTab('devis')
-    setModal('add')
-  }
-}, [])
+
+  useEffect(() => {
+    if (searchParams.get('new') === 'devis') {
+      setTab('devis')
+      setModal('add')
+    }
+  }, [])
 
   const list     = tab === 'factures' ? factures : devis
   const selected = list.find(d => d.id === selectedId) || null
@@ -128,7 +128,6 @@ useEffect(() => {
 
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
 
-        {/* Top bar */}
         <div style={{ padding: '1rem 1.25rem', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, background: 'var(--card-bg)' }}>
           <div style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)', flex: 1 }}>Finances</div>
           <div style={{ display: 'flex', gap: '4px' }}>
@@ -147,15 +146,14 @@ useEffect(() => {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', background: 'var(--bg-primary)' }}>
 
-          {/* DASHBOARD */}
           {tab === 'dashboard' && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '1.25rem' }}>
                 {[
-                  { label: 'CA encaissé',      value: fmt(totalCA),      color: '#ff6b2b', sub: `${factures.filter(f => f.statut === 'paid').length} factures payées`, subColor: '#4ade80' },
+                  { label: 'CA encaissé',      value: fmt(totalCA),           color: '#ff6b2b', sub: `${factures.filter(f => f.statut === 'paid').length} factures payées`, subColor: '#4ade80' },
                   { label: 'Factures totales', value: String(factures.length), color: 'var(--text-primary)', sub: `${devis.length} devis`, subColor: 'var(--text-muted)' },
-                  { label: 'Impayées',         value: fmt(impayees),     color: '#f87171', sub: `${factures.filter(f => f.statut !== 'paid').length} factures`, subColor: '#f87171' },
-                  { label: 'Devis en attente', value: fmt(devisOuverts), color: '#fb923c', sub: `${devis.filter(d => d.statut === 'pending').length} envoyés`, subColor: 'var(--text-muted)' },
+                  { label: 'Impayées',         value: fmt(impayees),          color: '#f87171', sub: `${factures.filter(f => f.statut !== 'paid').length} factures`, subColor: '#f87171' },
+                  { label: 'Devis en attente', value: fmt(devisOuverts),      color: '#fb923c', sub: `${devis.filter(d => d.statut === 'pending').length} envoyés`, subColor: 'var(--text-muted)' },
                 ].map((k, i) => (
                   <div key={i} style={{ background: 'var(--card-bg)', border: '0.5px solid var(--border-subtle)', borderRadius: '12px', padding: '.875rem 1rem' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '.4px' }}>{k.label}</div>
@@ -202,7 +200,6 @@ useEffect(() => {
             </>
           )}
 
-          {/* FACTURES / DEVIS */}
           {(tab === 'factures' || tab === 'devis') && (
             <>
               {selected && (
@@ -233,10 +230,10 @@ useEffect(() => {
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '7px', marginBottom: '.875rem' }}>
                     {[
-                      { label: 'Émission',  value: selected.date_emission  || '—' },
-                      { label: 'Échéance',  value: selected.date_echeance  || '—' },
-                      { label: 'Statut',    value: statusLabel(selected.statut), color: statusColor(selected.statut) },
-                      { label: 'Total HT',  value: fmt(selected.montant), color: '#4ade80' },
+                      { label: 'Émission', value: selected.date_emission || '—' },
+                      { label: 'Échéance', value: selected.date_echeance || '—' },
+                      { label: 'Statut',   value: statusLabel(selected.statut), color: statusColor(selected.statut) },
+                      { label: 'Total HT', value: fmt(selected.montant), color: '#4ade80' },
                     ].map((c, i) => (
                       <div key={i} style={{ background: 'var(--card-bg)', border: '0.5px solid var(--border-subtle)', borderRadius: '7px', padding: '.5rem .625rem' }}>
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>{c.label}</div>
@@ -297,5 +294,13 @@ useEffect(() => {
         </div>
       </div>
     </>
+  )
+}
+
+export default function Finances() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</div>}>
+      <FinancesInner />
+    </Suspense>
   )
 }

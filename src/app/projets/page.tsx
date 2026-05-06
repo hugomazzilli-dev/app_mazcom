@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useProjects, Project } from '@/hooks/useProjects'
 import ProjetModal from '@/components/ProjetModal'
@@ -63,7 +63,7 @@ function parseDeadline(dateStr: string): { jour: number; mois: number; annee: nu
   return { jour, mois, annee }
 }
 
-export default function Projets() {
+function ProjetsInner() {
   const searchParams = useSearchParams()
   const { projects, loading, addProject, updateProject, deleteProject, moveProject, toggleCheck } = useProjects()
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -85,6 +85,7 @@ export default function Projets() {
       const { data: newP } = await addProject(data)
       if (newP) {
         setSelectedId(newP.id)
+
         await supabase.from('taches').insert([{
           nom:      `Préparer projet — ${data.nom}`,
           priorite: data.priorite || 'normale',
@@ -100,6 +101,7 @@ export default function Projets() {
           ],
           done: false,
         }])
+
         if (data.date_deadline) {
           const { jour, mois, annee } = parseDeadline(data.date_deadline)
           await supabase.from('evenements').insert([{
@@ -116,6 +118,7 @@ export default function Projets() {
             checks:     [],
           }])
         }
+
         const year = new Date().getFullYear()
         const rand = Math.floor(Math.random() * 900 + 100)
         await supabase.from('devis').insert([{
@@ -320,5 +323,17 @@ export default function Projets() {
         </div>
       </div>
     </>
+  )
+}
+
+export default function Projets() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-muted)', fontSize: '14px' }}>
+        Chargement...
+      </div>
+    }>
+      <ProjetsInner />
+    </Suspense>
   )
 }
