@@ -47,3 +47,23 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #2a2a2e; border-radius: 2px; }
+
+/* ── RESPONSIVE MOBILE ── */
+@media (max-width: 767px) {
+  body {
+    flex-direction: column;
+  }
+
+  /* Cacher la sidebar desktop sur mobile */
+  aside {
+    display: none !important;
+  }
+
+  main {
+    padding-bottom: 70px !important;
+  }
+
+  /* Grilles → colonnes sur mobile */
+  .grid-4 { grid-template-columns: 1fr 1fr !important; }
+  .grid-3 { grid-template-columns: 1fr !important; }
+}
